@@ -82,11 +82,14 @@ export default function CheckoutPage() {
 
         <fieldset className="space-y-5 mt-10">
           <legend className="label mb-4">Delivery</legend>
+          <p className="caption text-ink-500 -mt-2">
+            We currently deliver to Harare only. Outside Harare? Message us on WhatsApp from the footer.
+          </p>
           <Field name="name" label="Full name" required autoComplete="name" />
           <Field name="line1" label="Address" required autoComplete="address-line1" />
           <Field name="line2" label="Address (cont.)" autoComplete="address-line2" />
           <div className="grid grid-cols-2 gap-4">
-            <Field name="city" label="City" required autoComplete="address-level2" />
+            <Field name="city" label="City" required autoComplete="address-level2" defaultValue="Harare" />
             <Field name="country" label="Country" defaultValue="ZW" required />
           </div>
         </fieldset>

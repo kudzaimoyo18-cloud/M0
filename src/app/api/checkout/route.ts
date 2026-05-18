@@ -55,6 +55,18 @@ export async function POST(req: NextRequest) {
   const body = parsed.data;
   const currency = body.currency as Currency;
 
+  // Harare-only delivery in v1. Match case-insensitively against common variants.
+  const city = body.shipping.city.trim().toLowerCase();
+  if (city !== "harare") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "We currently deliver to Harare only. Message us on WhatsApp from the footer to arrange delivery elsewhere.",
+      },
+      { status: 422 }
+    );
+  }
+
   const subtotalUsdMinor = body.lines.reduce((s, l) => s + l.unitPriceUsdMinor * l.qty, 0);
   const subtotalMinor = await convertFromUsdMinor(subtotalUsdMinor, currency);
   const fxRate = await getRate(currency);

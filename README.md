@@ -1,6 +1,6 @@
 # M0
 
-> Modern wardrobe essentials. Designed in Harare, shipped across Zimbabwe.
+> Modern wardrobe essentials. Curated in Dubai, delivered in Harare.
 
 Strict editorial e-commerce inspired by Zara's simplicity. Pure black-and-white, full-bleed imagery, sharp corners. Deployed on Vercel.
 
