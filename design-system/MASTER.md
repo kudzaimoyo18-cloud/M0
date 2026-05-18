@@ -51,7 +51,7 @@ Two families. Both Google Fonts (self-hosted via Next.js `next/font` for zero CL
 |---|---|---|---|---|---|
 | Display headline | **Cormorant Garamond** | 300 | 72px / 44px | -0.01em | none |
 | Section heading | **Cormorant Garamond** | 400 | 32px / 24px | -0.005em | none |
-| Brand wordmark | **Cormorant Garamond** | 500 | 24px / 20px | 0.08em | UPPERCASE |
+| Brand wordmark | **Inter** | 600 | 22px / 20px | 0.22em | `M0` (digit zero, not letter o) |
 | Body | **Inter** | 400 | 14px / 14px | 0 | none |
 | Label / nav / button | **Inter** | 500 | 12px / 12px | 0.12em | UPPERCASE |
 | Caption / meta | **Inter** | 400 | 11px / 11px | 0.04em | none |
