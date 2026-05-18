@@ -25,6 +25,7 @@ export default {
         // Loaded via next/font in layout.tsx; CSS vars set on <html>.
         display: ["var(--font-display)", "Cormorant Garamond", "serif"],
         sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
+        wordmark: ["var(--font-wordmark)", "Cinzel", "Trajan Pro", "serif"],
       },
       fontSize: {
         // Custom scale per MASTER §3

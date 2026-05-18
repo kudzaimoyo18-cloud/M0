@@ -35,7 +35,7 @@ export function Footer() {
     <footer className="bg-ink-900 text-paper mt-section">
       <div className="px-4 md:px-8 py-12 md:py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div>
-          <div className="font-sans font-semibold text-[28px] tracking-[0.22em]">M0</div>
+          <div className="font-wordmark font-semibold text-[32px] tracking-[0.18em]">M0</div>
           <p className="mt-4 text-ink-300 max-w-measure" style={{ fontSize: "13px" }}>
             Modern wardrobe essentials. Designed in Harare. Shipped across Zimbabwe.
           </p>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Cormorant_Garamond, Inter, Cinzel } from "next/font/google";
 import { CurrencyProvider } from "@/components/providers/currency-provider";
 import { CartProvider } from "@/components/providers/cart-provider";
 import { Header } from "@/components/site/header";
@@ -17,6 +17,14 @@ const sans = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+// Roman inscriptional capitals — used only for the M0 wordmark.
+const wordmark = Cinzel({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-wordmark",
   display: "swap",
 });
 

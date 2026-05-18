@@ -49,7 +49,7 @@ export function Header() {
         </div>
 
         <div className="flex justify-center">
-          <Link href="/" className="font-sans font-semibold text-[20px] md:text-[22px] tracking-[0.22em]">
+          <Link href="/" className="font-wordmark font-semibold text-[22px] md:text-[26px] tracking-[0.18em]">
             M0
           </Link>
         </div>
@@ -76,7 +76,7 @@ export function Header() {
         <div className="fixed inset-0 z-50 bg-paper flex flex-col">
           <div className="h-14 grid grid-cols-3 items-center px-4 border-b border-ink-300">
             <div />
-            <div className="flex justify-center font-sans font-semibold text-[20px] tracking-[0.22em]">M0</div>
+            <div className="flex justify-center font-wordmark font-semibold text-[22px] tracking-[0.18em]">M0</div>
             <div className="flex justify-end">
               <button type="button" aria-label="Close menu" className="-mr-2 p-2" onClick={() => setMenuOpen(false)}>
                 <X className="h-5 w-5" strokeWidth={1.25} />
