@@ -27,5 +27,8 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  // `/admin/:path*` only matches paths with at least one segment after
+  // /admin (e.g. /admin/products). The bare /admin URL slips through and
+  // the dashboard renders unauthenticated. List both explicitly.
+  matcher: ["/admin", "/admin/:path*"],
 };
