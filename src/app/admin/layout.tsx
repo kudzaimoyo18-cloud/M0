@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +9,12 @@ const NAV = [
   { label: "Orders", href: "/admin/orders" },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  // The admin gate is enforced in middleware.ts — by the time this layout
-  // renders, the request is either authenticated or on /admin/login.
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Defense in depth — middleware should already have gated this, but a
+  // server-side check here guarantees we never render the chrome to an
+  // unauthenticated visitor.
+  await requireAdmin();
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
       <AdminChrome />
@@ -45,5 +49,5 @@ async function signOut() {
   const { clearAdminCookie } = await import("@/lib/admin");
   await clearAdminCookie();
   const { redirect } = await import("next/navigation");
-  redirect("/admin/login");
+  redirect("/signin");
 }
