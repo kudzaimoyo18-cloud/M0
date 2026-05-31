@@ -4,138 +4,113 @@ import { isAdmin } from "@/lib/admin";
 import { getDb, schema } from "@/db";
 
 /**
- * One-shot catalog seed endpoint.
+ * One-shot catalog seed.
  *
  *   GET /api/admin/seed?wipe=1
  *
- * Authenticated (m0_admin cookie). Generates a ~100-SKU catalog of plain-
- * colorway essentials across women + men: baggy jeans, cropped tees and
- * shirts, oversized tees, cargo trousers, knit sweaters, linen shirts, and
- * slip dresses. Same hero image is reused across colorways of the same
- * style — typical for catalog photography.
+ * Admin-cookie gated. Wipes products / variants / product_images and seeds
+ * the WhatsApp-derived catalog: 9 styles × multiple plain colorways = 28
+ * women's two- and three-piece sets, flat USD 90, sizes S/M/L. Hero photos
+ * live under /public/seed/ and are served by Vercel directly.
  *
- * The route is GET-callable so the admin can trigger it from a browser
- * with an active session cookie. With ?wipe=1 it TRUNCATEs products,
- * variants, images, and orders first (categories preserved).
+ * Orders are NEVER touched by this endpoint — historical order_items keep
+ * snapshotted product names, so deleting the products doesn't lose the
+ * record.
+ *
+ * Names are generic ("Logo Knit Set" not "Hermes set") — photos still show
+ * branding but the listings don't make claims of authenticity.
  */
 
-const COLORS_FULL = [
-  "Black",
-  "White",
-  "Ecru",
-  "Stone",
-  "Sand",
-  "Olive",
-  "Navy",
-  "Charcoal",
-  "Butter",
-  "Mocha",
-];
-
-const IMG = {
-  // All Unsplash, plain-background editorial fashion shots. Validated remote
-  // patterns in next.config.ts.
-  jean: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=1200&q=80&fit=crop",
-  tee: "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?w=1200&q=80&fit=crop",
-  shirt: "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?w=1200&q=80&fit=crop",
-  knit: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=1200&q=80&fit=crop",
-  cargo: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=1200&q=80&fit=crop",
-  dress: "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=1200&q=80&fit=crop",
-} as const;
-
 interface StyleSpec {
+  /** Public-facing style label (used as part of product name) */
   name: string;
-  genders: ("women" | "men")[];
-  basePriceUsd: number;
-  sizes: string[];
-  imageUrl: string;
-  colorways: string[];
-  featuredCount: number;
+  /** Relative path under /public/seed/ */
+  image: string;
+  /** Product description shown on PDP */
   description: string;
+  /** Available colorways — each becomes a separate SKU */
+  colorways: string[];
+  /** Mark first N colorways as featured for the homepage New In grid */
+  featuredCount: number;
 }
 
 const STYLES: StyleSpec[] = [
   {
-    name: "Baggy Jean",
-    genders: ["women", "men"],
-    basePriceUsd: 89,
-    sizes: ["26", "28", "30", "32"],
-    imageUrl: IMG.jean,
-    colorways: ["Black", "White", "Ecru", "Stone", "Sand", "Navy", "Charcoal", "Mocha"],
+    name: "Geometric Knit Set",
+    image: "/seed/geometric-knit-set.jpg",
+    description:
+      "Three-piece knit set — cropped cardigan, fitted bralette, and wide-leg trousers in a bold labyrinth pattern. Gold-tone buttons, ribbed cuffs and hem. Soft cotton blend.",
+    colorways: ["White", "Black", "Beige"],
+    featuredCount: 1,
+  },
+  {
+    name: "Striped Cardigan Set",
+    image: "/seed/striped-cardigan-set.jpg",
+    description:
+      "Three-piece preppy set — striped cardigan with logo patch, matching knit bralette, and wide-leg trousers. Contrast burgundy stripes at hem and cuffs.",
+    colorways: ["White", "Grey", "Beige", "Navy"],
     featuredCount: 2,
-    description: "Wide-leg, mid-rise denim with a relaxed seat and full break. 100% rigid cotton.",
   },
   {
-    name: "Cropped Cotton Tee",
-    genders: ["women"],
-    basePriceUsd: 35,
-    sizes: ["XS", "S", "M", "L"],
-    imageUrl: IMG.tee,
-    colorways: COLORS_FULL,
+    name: "V-Neck Cardigan Set",
+    image: "/seed/vneck-cardigan-set.jpg",
+    description:
+      "Three-piece knit ensemble — sleeveless V-neck vest, matching cardigan, and high-waist wide-leg trousers. Embroidered crest at chest.",
+    colorways: ["Grey", "Black", "White", "Brown"],
     featuredCount: 2,
-    description: "Boxy crop in heavyweight combed cotton. Rib crew, dropped shoulder, raw-cut hem.",
   },
   {
-    name: "Cropped Shirt",
-    genders: ["women"],
-    basePriceUsd: 59,
-    sizes: ["XS", "S", "M", "L"],
-    imageUrl: IMG.shirt,
-    colorways: COLORS_FULL,
+    name: "Logo Knit Set",
+    image: "/seed/logo-knit-set.jpg",
+    description:
+      "Three-piece knit set — cropped sleeveless top, button-front cardigan, and wide-leg trousers. Bold logo accents in contrast colorway.",
+    colorways: ["Beige", "Black", "Grey", "Navy"],
     featuredCount: 2,
-    description: "Cropped button-down in poplin cotton. Camp collar, side splits, mother-of-pearl buttons.",
   },
   {
-    name: "Oversized Tee",
-    genders: ["women", "men"],
-    basePriceUsd: 42,
-    sizes: ["XS", "S", "M", "L"],
-    imageUrl: IMG.tee,
-    colorways: ["Black", "White", "Ecru", "Stone", "Sand", "Olive", "Charcoal", "Mocha"],
+    name: "Crest Tee Set",
+    image: "/seed/crest-tee-set.jpg",
+    description:
+      "Two-piece loungewear set — soft cotton crewneck tee with embroidered crest, and matching wide-leg jogger trousers with drawcord waist.",
+    colorways: ["Black", "Brown", "Red", "Navy"],
     featuredCount: 1,
-    description: "Boxy oversized fit, 220gsm cotton. Reinforced shoulders, no logo, runs true.",
   },
   {
-    name: "Cargo Trouser",
-    genders: ["women", "men"],
-    basePriceUsd: 95,
-    sizes: ["26", "28", "30", "32"],
-    imageUrl: IMG.cargo,
-    colorways: ["Black", "Sand", "Olive", "Charcoal", "Stone", "Mocha"],
+    name: "Triangle Patch Tee Set",
+    image: "/seed/triangle-tee-set.jpg",
+    description:
+      "Two-piece athletic-inspired set — crewneck tee with horizontal stripe and triangle patch, and joggers with three-stripe side panel. Cotton blend.",
+    colorways: ["Red", "Brown"],
     featuredCount: 1,
-    description: "Mid-rise straight cargo in washed cotton twill. Six pockets, drawcord waist.",
   },
   {
-    name: "Knit Sweater",
-    genders: ["women", "men"],
-    basePriceUsd: 79,
-    sizes: ["XS", "S", "M", "L"],
-    imageUrl: IMG.knit,
-    colorways: ["Black", "White", "Ecru", "Stone", "Sand", "Navy", "Charcoal", "Butter"],
-    featuredCount: 1,
-    description: "Relaxed crewneck in a soft cotton blend. Ribbed neck, cuffs, and hem.",
+    name: "Patch Logo Tee Set",
+    image: "/seed/patch-tee-set.jpg",
+    description:
+      "Two-piece loungewear set — crewneck tee and wide-leg jogger trousers with woven logo patches. Lightweight cotton, dropped shoulder.",
+    colorways: ["Navy", "White", "Black"],
+    featuredCount: 2,
   },
   {
-    name: "Linen Shirt",
-    genders: ["women", "men"],
-    basePriceUsd: 69,
-    sizes: ["XS", "S", "M", "L"],
-    imageUrl: IMG.shirt,
-    colorways: ["White", "Ecru", "Sand", "Stone", "Olive", "Butter"],
+    name: "Leather Patch Tee Set",
+    image: "/seed/leather-patch-tee-set.jpg",
+    description:
+      "Two-piece minimal set — crewneck tee and matching jogger trousers, each with a contrast tan leather patch at chest and thigh. Slouchy relaxed fit.",
+    colorways: ["Brown", "Black", "Red"],
     featuredCount: 1,
-    description: "100% European linen, boxy fit. Spread collar, side gussets, pearl buttons.",
   },
   {
-    name: "Slip Dress",
-    genders: ["women"],
-    basePriceUsd: 65,
-    sizes: ["XS", "S", "M", "L"],
-    imageUrl: IMG.dress,
-    colorways: ["Black", "Ecru", "Sand", "Stone", "Navy", "Charcoal", "Butter", "Mocha"],
+    name: "Side-Stripe Polo Set",
+    image: "/seed/side-stripe-tee-set.jpg",
+    description:
+      "Two-piece short-sleeve set — quarter-zip polo and matching wide-leg trousers with contrast side stripes. Athletic-inspired, easy throw-on.",
+    colorways: ["Brown"],
     featuredCount: 1,
-    description: "Bias-cut midi slip in satin viscose. Adjustable straps, soft drape, side splits.",
   },
 ];
+
+const SIZES = ["S", "M", "L"] as const;
+const PRICE_USD = 90;
 
 function slugify(s: string) {
   return s
@@ -150,8 +125,11 @@ async function seed(wipe: boolean) {
   const db = await getDb();
 
   if (wipe) {
+    // Wipe products + variants + product_images. PRESERVE orders +
+    // order_items so historical records survive (order rows snapshot
+    // productName / variantLabel at checkout time).
     await db.execute(
-      sql`TRUNCATE TABLE order_items, orders, product_images, variants, products RESTART IDENTITY CASCADE;`
+      sql`TRUNCATE TABLE product_images, variants, products RESTART IDENTITY CASCADE;`
     );
   }
 
@@ -160,47 +138,44 @@ async function seed(wipe: boolean) {
   const images: (typeof schema.productImages.$inferInsert)[] = [];
 
   for (const style of STYLES) {
-    for (const gender of style.genders) {
-      style.colorways.forEach((color, i) => {
-        const productId = crypto.randomUUID();
-        const slug = `${slugify(color)}-${slugify(style.name)}-${gender}`;
-        const name = `${color} ${style.name}`;
-        const featured = i < style.featuredCount;
+    style.colorways.forEach((color, i) => {
+      const productId = crypto.randomUUID();
+      const slug = `${slugify(color)}-${slugify(style.name)}`;
+      const name = `${color} ${style.name}`;
+      const featured = i < style.featuredCount;
 
-        products.push({
-          id: productId,
-          slug,
-          name,
-          description: style.description,
-          categoryId: gender,
-          priceUsdMinor: Math.round(style.basePriceUsd * 100),
-          status: "active",
-          featured,
-        });
+      products.push({
+        id: productId,
+        slug,
+        name,
+        description: style.description,
+        categoryId: "women",
+        priceUsdMinor: PRICE_USD * 100,
+        status: "active",
+        featured,
+      });
 
-        for (const size of style.sizes) {
-          variants.push({
-            id: crypto.randomUUID(),
-            productId,
-            sku: `${slug}-${size.toLowerCase()}`,
-            size,
-            inventory: 10,
-          });
-        }
-
-        images.push({
+      for (const size of SIZES) {
+        variants.push({
           id: crypto.randomUUID(),
           productId,
-          url: style.imageUrl,
-          blobPath: `seed/${slug}`,
-          alt: name,
-          position: 0,
+          sku: `${slug}-${size.toLowerCase()}`,
+          size,
+          inventory: 10,
         });
+      }
+
+      images.push({
+        id: crypto.randomUUID(),
+        productId,
+        url: style.image,
+        blobPath: `public${style.image}`,
+        alt: name,
+        position: 0,
       });
-    }
+    });
   }
 
-  // Drizzle accepts array values for batch insert.
   await db.insert(schema.products).values(products);
   await db.insert(schema.variants).values(variants);
   await db.insert(schema.productImages).values(images);
