@@ -285,11 +285,13 @@ async function seed() {
   const newImages = images.filter((i) => newProductIds.has(i.productId));
 
   if (newProducts.length > 0) {
-    await db.transaction(async (tx) => {
-      await tx.insert(schema.products).values(newProducts);
-      if (newVariants.length > 0) await tx.insert(schema.variants).values(newVariants);
-      if (newImages.length > 0) await tx.insert(schema.productImages).values(newImages);
-    });
+    // neon-http driver doesn't support transactions, so the three inserts
+    // run sequentially. If variants or images fail mid-batch the route can
+    // be safely re-POSTed — the slug pre-check skips already-inserted
+    // products, and the variants/images filter follows.
+    await db.insert(schema.products).values(newProducts);
+    if (newVariants.length > 0) await db.insert(schema.variants).values(newVariants);
+    if (newImages.length > 0) await db.insert(schema.productImages).values(newImages);
   }
 
   return {
