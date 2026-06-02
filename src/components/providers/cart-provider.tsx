@@ -1,6 +1,13 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  addLine as addLinePure,
+  lineCount as lineCountPure,
+  removeLine as removeLinePure,
+  setLineQty as setLineQtyPure,
+  subtotalUsdMinor as subtotalPure,
+} from "@/lib/cart-math";
 
 export interface CartLine {
   productId: string;
@@ -48,28 +55,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [lines]);
 
   const add = useCallback((line: CartLine) => {
-    setLines((prev) => {
-      const idx = prev.findIndex((l) => l.variantId === line.variantId);
-      if (idx === -1) return [...prev, line];
-      const next = [...prev];
-      next[idx] = { ...next[idx], qty: next[idx].qty + line.qty };
-      return next;
-    });
+    setLines((prev) => addLinePure(prev, line));
   }, []);
 
   const remove = useCallback((variantId: string) => {
-    setLines((prev) => prev.filter((l) => l.variantId !== variantId));
+    setLines((prev) => removeLinePure(prev, variantId));
   }, []);
 
   const setQty = useCallback((variantId: string, qty: number) => {
-    setLines((prev) => prev.map((l) => (l.variantId === variantId ? { ...l, qty } : l)).filter((l) => l.qty > 0));
+    setLines((prev) => setLineQtyPure(prev, variantId, qty));
   }, []);
 
   const clear = useCallback(() => setLines([]), []);
 
   const value = useMemo<Ctx>(() => {
-    const count = lines.reduce((sum, l) => sum + l.qty, 0);
-    const subtotalUsdMinor = lines.reduce((sum, l) => sum + l.unitPriceUsdMinor * l.qty, 0);
+    const count = lineCountPure(lines);
+    const subtotalUsdMinor = subtotalPure(lines);
     return { lines, add, remove, setQty, clear, count, subtotalUsdMinor };
   }, [lines, add, remove, setQty, clear]);
 

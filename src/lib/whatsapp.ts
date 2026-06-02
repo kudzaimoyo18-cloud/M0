@@ -1,9 +1,11 @@
 /**
  * WhatsApp checkout helper.
  *
- * v1 of M0 doesn't take card or mobile-money payments online — orders are
- * confirmed via WhatsApp and settled with cash on delivery (COD). This module
- * builds the wa.me deep link and the prefilled order message.
+ * v1 of M0 doesn't take card or mobile-money payments online — every order is
+ * confirmed in the WhatsApp thread that opens at checkout, and payment is
+ * coordinated there before dispatch. Delivery lands in 5–7 days from
+ * confirmation. This module builds the wa.me deep link and the prefilled
+ * order message.
  *
  * The destination number lives in NEXT_PUBLIC_WHATSAPP_NUMBER so it's safe to
  * read in client components.
@@ -58,7 +60,8 @@ export function buildOrderMessage(input: WhatsAppOrderInput): string {
     lines.push(`• ${item.name}${variant} × ${item.qty} — ${formatAmount(item.unitPriceMinor * item.qty, input.currency)}`);
   }
   lines.push("");
-  lines.push(`*Total* ${formatAmount(input.totalMinor, input.currency)} (cash on delivery)`);
+  lines.push(`*Total* ${formatAmount(input.totalMinor, input.currency)}`);
+  lines.push("_Payment arranged on this thread. Delivery 5–7 days from confirmation._");
   lines.push("");
   lines.push("*Ship to*");
   lines.push(input.shipping.name);

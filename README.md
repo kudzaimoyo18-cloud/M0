@@ -15,7 +15,7 @@ Strict editorial e-commerce inspired by Zara's simplicity. Pure black-and-white,
 | Database | Neon Postgres (via Vercel Storage integration) + Drizzle ORM |
 | Images | Vercel Blob |
 | Auth | None — shared password gate on `/admin` |
-| Checkout | WhatsApp + cash on delivery (no online payment in v1) |
+| Checkout | WhatsApp-coordinated payment (no online payment in v1), 5–7 day delivery |
 | FX | Live USD→ZWG rates from `open.er-api.com` (fallback table) |
 | Hosting | Vercel |
 
@@ -77,7 +77,7 @@ m0/
 │   │   ├── (storefront)     ← Home, [category], product/[slug], cart, checkout, track, wishlist
 │   │   ├── admin/           ← Login, dashboard, products CRUD, orders viewer
 │   │   └── api/
-│   │       ├── checkout/    ← Saves COD order → returns wa.me deep link
+│   │       ├── checkout/    ← Saves pending order → returns wa.me deep link
 │   │       ├── admin/upload/← Vercel Blob upload (admin-only)
 │   │       └── fx/          ← Cached FX rates
 │   ├── components/
@@ -106,14 +106,14 @@ Key rules:
 - **No color** outside `--ok / --warn / --danger` form states.
 - **No border radius.** Anywhere.
 - **No shadows.** Elevation is white-on-white with hairline borders.
-- **Type:** Cormorant Garamond (display) + Inter (UI). Buttons/nav use UPPERCASE label style with 0.12em tracking.
+- **Type:** Cinzel (wordmark, Roman inscriptional capitals) + Cormorant Garamond (display) + Inter (UI). Buttons/nav use UPPERCASE label style with 0.12em tracking.
 - **Motion:** crossfade only, 150–320ms, ease-in-out. Respect `prefers-reduced-motion`.
 
 ---
 
-## Checkout — WhatsApp + cash on delivery
+## Checkout — WhatsApp coordination, 5–7 day delivery
 
-v1 does not take online payments. Checkout writes a `pending` order to Postgres with `payment_provider = "whatsapp_cod"` and opens a `wa.me` deep link with a prefilled order summary. Settlement happens at delivery.
+v1 does not take online payments. Checkout writes a `pending` order to Postgres with `payment_provider = "whatsapp"` and opens a `wa.me` deep link with a prefilled order summary. Payment method (bank transfer, mobile money, etc.) is agreed in the thread before dispatch; delivery follows in 5–7 days.
 
 When a card / mobile-money integration goes in later, swap `src/lib/whatsapp.ts` for a real provider and bump `payment_provider`.
 

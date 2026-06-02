@@ -30,7 +30,7 @@ export default async function ThanksPage({
         <h1 className="font-display text-section">Order received.</h1>
         {ref && <p className="mt-4 text-ink-500 tabular">Reference {ref}</p>}
         <p className="mt-6 text-ink-700 text-[14px] leading-relaxed">
-          We&apos;ve opened WhatsApp with your order summary. Continue the conversation there to confirm delivery time and cash on delivery.
+          We&apos;ve opened WhatsApp with your order summary. Continue the conversation there to confirm payment and delivery — your order ships in 5–7 days from confirmation.
         </p>
         {whatsappNumber && <p className="caption text-ink-500 mt-4 tabular">{whatsappNumber}</p>}
         <div className="mt-8 flex flex-col gap-3 items-center">

@@ -18,6 +18,16 @@ import { NextRequest, NextResponse } from "next/server";
 const NO_STORE = "private, no-store, no-cache, must-revalidate";
 
 function ipFrom(req: NextRequest): string {
+  // Use x-vercel-forwarded-for, which is set by Vercel's edge to the single
+  // trusted client IP. Reading x-forwarded-for directly lets an attacker
+  // spoof the allowlist by prepending an allowed IP to a header they
+  // control. x-vercel-forwarded-for is overwritten by Vercel and cannot be
+  // forged by upstream callers.
+  const vercelFwd = req.headers.get("x-vercel-forwarded-for");
+  if (vercelFwd) return vercelFwd.split(",")[0].trim() || "unknown";
+  // Local dev / non-Vercel: fall back to the raw header so the allowlist
+  // still works in `next dev`. In that environment the header is not
+  // attacker-controlled because there is no proxy in front.
   const fwd = req.headers.get("x-forwarded-for") ?? "";
   return fwd.split(",")[0].trim() || "unknown";
 }

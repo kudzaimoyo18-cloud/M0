@@ -13,12 +13,12 @@ export default function AboutPage() {
         Twice a season we fly to Dubai and walk the floor — the wholesalers, the boutiques, the warehouses behind the malls. We hand-pick a tight edit: the pieces we&apos;d actually wear, in the cuts and fabrics worth the trip.
       </p>
       <p>
-        Then we bring them home. Stock lives in Harare. Orders confirm over WhatsApp. Payment is cash on delivery. No customs, no waiting, no guessing what you&apos;ll get in the box.
+        Then we bring them home. Stock lives in Harare. Orders confirm over WhatsApp and payment is arranged in the thread before dispatch. From confirmation it&apos;s 5–7 days to your door. No customs, no guessing what you&apos;ll get in the box.
       </p>
 
       <H2>What we&apos;re not</H2>
       <p>
-        We&apos;re not a marketplace. We don&apos;t list a thousand SKUs to make the catalogue look big. Every piece on this site is in our hands, in Harare, ready to go out today.
+        We&apos;re not a marketplace. We don&apos;t list a thousand SKUs to make the catalogue look big. Every piece on this site is in our hands, in Harare, ready to ship to your door in 5–7 days.
       </p>
 
       <H2>How to reach us</H2>

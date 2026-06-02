@@ -5,9 +5,15 @@ import Image from "next/image";
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { Price } from "@/components/site/price";
+import { useWishlistOptional } from "@/components/providers/wishlist-provider";
 import { cn } from "@/lib/utils";
 
 export interface ProductCardData {
+  /**
+   * Database id. Optional only for backwards-compat with old call sites;
+   * required for wishlist self-binding to work.
+   */
+  productId?: string;
   slug: string;
   name: string;
   priceUsdMinor: number;
@@ -18,7 +24,7 @@ export interface ProductCardData {
 export function ProductCard({
   product,
   onWishlistToggle,
-  inWishlist = false,
+  inWishlist: inWishlistProp,
   priority = false,
 }: {
   product: ProductCardData;
@@ -27,6 +33,25 @@ export function ProductCard({
   priority?: boolean;
 }) {
   const [hover, setHover] = useState(false);
+  const wishlist = useWishlistOptional();
+
+  // Self-bind to the WishlistProvider when present + we have a productId.
+  // Falls back to explicit `onWishlistToggle` / `inWishlist` props for
+  // legacy callers or test rigs that render without the provider.
+  const canSelfBind = !!(wishlist && product.productId);
+  const handleToggle = onWishlistToggle ?? (canSelfBind
+    ? () => wishlist!.toggle({
+        productId: product.productId!,
+        slug: product.slug,
+        name: product.name,
+        priceUsdMinor: product.priceUsdMinor,
+        imageUrl: product.images[0]?.url,
+      })
+    : undefined);
+  const inWishlist = inWishlistProp ?? (canSelfBind
+    ? wishlist!.has(product.productId!)
+    : false);
+
   const primary = product.images[0];
   const secondary = product.images[1] ?? primary;
   const shown = hover && secondary ? secondary : primary;
@@ -47,13 +72,13 @@ export function ProductCard({
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-ink-500 caption">No image</div>
           )}
-          {onWishlistToggle && (
+          {handleToggle && (
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onWishlistToggle();
+                handleToggle();
               }}
               aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
               aria-pressed={inWishlist}

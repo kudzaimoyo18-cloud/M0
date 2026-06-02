@@ -6,12 +6,18 @@ import { getDb, schema } from "@/db";
 /**
  * One-shot catalog seed.
  *
- *   GET /api/admin/seed?wipe=1
+ *   POST /api/admin/seed?wipe=1
  *
  * Admin-cookie gated. Wipes products / variants / product_images and seeds
  * the WhatsApp-derived catalog: 9 styles × multiple plain colorways = 28
  * women's two- and three-piece sets, flat USD 90, sizes S/M/L. Hero photos
  * live under /public/seed/ and are served by Vercel directly.
+ *
+ * **POST-only.** Earlier versions exposed this via GET as well, which made
+ * the destructive `?wipe=1` reachable via `<img src=...>` and other
+ * cross-origin GET probes. SameSite=strict on the admin cookie now blocks
+ * the cookie on cross-site GETs, but removing the GET handler entirely is
+ * cheap defense-in-depth.
  *
  * Orders are NEVER touched by this endpoint — historical order_items keep
  * snapshotted product names, so deleting the products doesn't lose the
@@ -20,6 +26,8 @@ import { getDb, schema } from "@/db";
  * Names are generic ("Logo Knit Set" not "Hermes set") — photos still show
  * branding but the listings don't make claims of authenticity.
  */
+
+const NO_STORE = "private, no-store, no-cache, must-revalidate";
 
 interface StyleSpec {
   /** Public-facing style label (used as part of product name) */
@@ -188,21 +196,37 @@ async function seed(wipe: boolean) {
   };
 }
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    const res = NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    res.headers.set("Cache-Control", NO_STORE);
+    return res;
   }
   const url = new URL(req.url);
   const wipe = url.searchParams.get("wipe") === "1";
   try {
     const counts = await seed(wipe);
-    return NextResponse.json({ ok: true, wiped: wipe, counts });
+    const res = NextResponse.json({ ok: true, wiped: wipe, counts });
+    res.headers.set("Cache-Control", NO_STORE);
+    return res;
   } catch (err) {
-    return NextResponse.json(
+    const res = NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "seed failed" },
       { status: 500 }
     );
+    res.headers.set("Cache-Control", NO_STORE);
+    return res;
   }
 }
 
-export const POST = GET;
+// Explicit 405 on GET — older code aliased POST = GET, which made the
+// destructive `?wipe=1` reachable from a cross-origin GET probe.
+export async function GET() {
+  const res = NextResponse.json(
+    { ok: false, error: "method not allowed; use POST" },
+    { status: 405 },
+  );
+  res.headers.set("Allow", "POST");
+  res.headers.set("Cache-Control", NO_STORE);
+  return res;
+}

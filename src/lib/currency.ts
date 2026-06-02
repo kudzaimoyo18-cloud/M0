@@ -2,10 +2,10 @@
  * Currency / FX helpers.
  *
  * Storefront prices live in USD cents. We render ZWG by multiplying the USD
- * value by a daily FX rate. Paynow charges in the currency the user selected
- * (one integration ID per currency).
+ * value by a daily FX rate, snapshotted on each order so totals reconcile if
+ * the rate moves before delivery.
  *
- * If FX_API_URL is set we fetch live rates (cached via Cloudflare's edge cache).
+ * If FX_API_URL is set we fetch live rates (re-used via Vercel's edge cache).
  * Otherwise we fall back to a hardcoded rate — keep this conservative.
  */
 

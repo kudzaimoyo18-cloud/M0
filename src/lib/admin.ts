@@ -40,7 +40,10 @@ export async function setAdminCookie(password: string) {
   const jar = await cookies();
   jar.set(COOKIE, password, {
     httpOnly: true,
-    sameSite: "lax",
+    // `strict` (not `lax`) — there is no flow that requires the admin
+    // cookie on cross-site GET navigation, and `lax` leaves destructive
+    // GET endpoints (notably /api/admin/seed) reachable from CSRF probes.
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     // Dropped from 14d → 24h to limit damage from a leaked session.

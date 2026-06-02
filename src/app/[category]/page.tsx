@@ -23,6 +23,7 @@ async function loadProducts(categoryId: string): Promise<ProductCardData[]> {
         .where(eq(schema.productImages.productId, r.id))
         .orderBy(schema.productImages.position);
       out.push({
+        productId: r.id,
         slug: r.slug,
         name: r.name,
         priceUsdMinor: r.priceUsdMinor,

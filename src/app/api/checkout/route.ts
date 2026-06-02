@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { convertFromUsdMinor, getRate, type Currency } from "@/lib/currency";
 import { buildWhatsAppUrl, getDestinationDigits } from "@/lib/whatsapp";
+import { shippingUsdMinor, subtotalUsdMinor as sumCartUsdMinor } from "@/lib/cart-math";
+import { nextReference } from "@/lib/order-reference";
 
 const BodySchema = z.object({
   currency: z.enum(["USD", "ZWG"]),
@@ -32,20 +34,14 @@ const BodySchema = z.object({
   }),
 });
 
-function nextReference(): string {
-  const d = new Date();
-  const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
-  const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `M0-${ymd}-${rand}`;
-}
-
 function uuid() {
   return crypto.randomUUID();
 }
 
 /**
- * Creates a pending COD order and returns a wa.me URL the client should open.
- * No payment processing — settlement happens in person at delivery.
+ * Creates a pending order and returns a wa.me URL the client should open.
+ * No payment processing — payment is arranged in the WhatsApp thread that
+ * opens after submit; delivery follows in 5–7 days.
  */
 export async function POST(req: NextRequest) {
   const parsed = BodySchema.safeParse(await req.json());
@@ -67,47 +63,62 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const subtotalUsdMinor = body.lines.reduce((s, l) => s + l.unitPriceUsdMinor * l.qty, 0);
+  const subtotalUsdMinor = sumCartUsdMinor(body.lines);
   const subtotalMinor = await convertFromUsdMinor(subtotalUsdMinor, currency);
   const fxRate = await getRate(currency);
-  const shippingMinor = subtotalUsdMinor >= 10000 ? 0 : await convertFromUsdMinor(500, currency);
+  const shippingUsdMinorValue = shippingUsdMinor(subtotalUsdMinor);
+  const shippingMinor =
+    shippingUsdMinorValue === 0
+      ? 0
+      : await convertFromUsdMinor(shippingUsdMinorValue, currency);
   const totalMinor = subtotalMinor + shippingMinor;
 
   const orderId = uuid();
   const reference = nextReference();
 
   const db = await getDb();
-  const orderLines = body.lines.map((l) => ({
-    id: uuid(),
-    orderId,
-    productId: l.productId,
-    variantId: l.variantId,
-    productName: l.name,
-    variantLabel: l.variantLabel ?? null,
-    qty: l.qty,
-    unitPriceMinor: Math.round(l.unitPriceUsdMinor * fxRate),
-    lineTotalMinor: Math.round(l.unitPriceUsdMinor * l.qty * fxRate),
-  }));
-
-  await db.insert(schema.orders).values({
-    id: orderId,
-    reference,
-    email: body.shipping.email.toLowerCase(),
-    currency,
-    subtotalMinor,
-    shippingMinor,
-    totalMinor,
-    fxRateFromUsd: fxRate,
-    shippingName: body.shipping.name,
-    shippingPhone: body.shipping.phone,
-    shippingLine1: body.shipping.line1,
-    shippingLine2: body.shipping.line2 ?? null,
-    shippingCity: body.shipping.city,
-    shippingCountry: body.shipping.country,
-    paymentProvider: "whatsapp_cod",
-    status: "pending",
+  // Round once per line, then derive the line total from the rounded unit
+  // price. If we round unit and line independently, large quantities can
+  // cause subtotalMinor and SUM(line_total_minor) to disagree by 1 cent.
+  const orderLines = body.lines.map((l) => {
+    const unitPriceMinor = Math.round(l.unitPriceUsdMinor * fxRate);
+    return {
+      id: uuid(),
+      orderId,
+      productId: l.productId,
+      variantId: l.variantId,
+      productName: l.name,
+      variantLabel: l.variantLabel ?? null,
+      qty: l.qty,
+      unitPriceMinor,
+      lineTotalMinor: unitPriceMinor * l.qty,
+    };
   });
-  await db.insert(schema.orderItems).values(orderLines);
+
+  // Wrap the order + items in a single transaction. Otherwise a failure
+  // between the two inserts leaves an orphan order row with no line detail
+  // — the customer is charged for a phantom order in our records.
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.orders).values({
+      id: orderId,
+      reference,
+      email: body.shipping.email.toLowerCase(),
+      currency,
+      subtotalMinor,
+      shippingMinor,
+      totalMinor,
+      fxRateFromUsd: fxRate,
+      shippingName: body.shipping.name,
+      shippingPhone: body.shipping.phone,
+      shippingLine1: body.shipping.line1,
+      shippingLine2: body.shipping.line2 ?? null,
+      shippingCity: body.shipping.city,
+      shippingCountry: body.shipping.country,
+      paymentProvider: "whatsapp",
+      status: "pending",
+    });
+    await tx.insert(schema.orderItems).values(orderLines);
+  });
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
 

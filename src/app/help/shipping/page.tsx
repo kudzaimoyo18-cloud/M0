@@ -7,7 +7,7 @@ export default function ShippingPage() {
     <StaticPage
       eyebrow="Help"
       title="Shipping."
-      lede="We currently deliver to Harare only. Orders out within 24 hours, on your doorstep in 2–5 working days."
+      lede="We currently deliver to Harare only. Orders confirmed on WhatsApp, on your doorstep in 5–7 days."
     >
       <H2>Where we deliver</H2>
       <p>
@@ -16,7 +16,7 @@ export default function ShippingPage() {
 
       <H2>How long it takes</H2>
       <p>
-        Most Harare deliveries land in <span className="tabular">2–5</span> working days from the moment we confirm your order on WhatsApp. Same-day is possible for orders placed before 11am — ask us.
+        Most Harare deliveries land in <span className="tabular">5–7</span> days from the moment we confirm your order on WhatsApp. We&apos;ll share a tighter ETA in the thread once we&apos;ve confirmed payment and dispatched.
       </p>
 
       <H2>What it costs</H2>
@@ -26,7 +26,7 @@ export default function ShippingPage() {
 
       <H2>How payment works</H2>
       <p>
-        Cash on delivery. Hand the driver USD or ZWG (your choice at checkout). We confirm the exact amount with you on WhatsApp before dispatch, so you&apos;re never caught short.
+        Payment is arranged in the WhatsApp thread that opens at checkout. We confirm the exact amount and method (bank transfer, mobile money, or in-person before dispatch) before your order leaves. No cash-on-delivery, no card payments online.
       </p>
     </StaticPage>
   );

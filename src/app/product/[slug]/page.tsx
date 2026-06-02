@@ -4,6 +4,7 @@ import { getDb, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import { Price } from "@/components/site/price";
 import { AddToBag } from "@/app/product/[slug]/_add-to-bag";
+import { WishlistButton } from "@/app/product/[slug]/_wishlist-button";
 
 export const dynamic = "force-dynamic";
 
@@ -77,8 +78,21 @@ export default async function PDP({ params }: { params: Promise<{ slug: string }
           />
         </div>
 
+        <div className="mt-6">
+          <WishlistButton
+            item={{
+              productId: product.id,
+              slug: product.slug,
+              name: product.name,
+              priceUsdMinor: product.priceUsdMinor,
+              imageUrl: images[0]?.url,
+            }}
+          />
+        </div>
+
         <dl className="mt-10 border-t border-ink-300 pt-6 grid grid-cols-1 gap-3 caption text-ink-500">
-          <div className="flex justify-between"><dt>Shipping</dt><dd>2–5 working days in Zimbabwe</dd></div>
+          <div className="flex justify-between"><dt>Delivery</dt><dd>5–7 days, Harare only</dd></div>
+          <div className="flex justify-between"><dt>Payment</dt><dd>Arranged on WhatsApp</dd></div>
           <div className="flex justify-between"><dt>Returns</dt><dd>30 days, unworn, tags attached</dd></div>
         </dl>
       </aside>

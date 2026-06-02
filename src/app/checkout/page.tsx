@@ -71,7 +71,7 @@ export default function CheckoutPage() {
       <div>
         <h1 className="font-display text-section mb-2">Checkout</h1>
         <p className="text-ink-500 text-[14px] max-w-measure">
-          M0 confirms every order over WhatsApp and accepts cash on delivery. Fill in your details and we&apos;ll continue the conversation there.
+          M0 confirms every order over WhatsApp. Fill in your details and we&apos;ll continue the conversation there — payment is arranged in the thread and delivery lands in 5–7 days.
         </p>
 
         <fieldset className="space-y-5 mt-10">
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
           <Price usdMinor={subtotalUsdMinor} className="label" />
         </div>
         <p className="caption text-ink-500 mt-3">
-          Cash on delivery. We&apos;ll open WhatsApp with your order summary so we can confirm timing and payment.
+          We&apos;ll open WhatsApp with your order summary so we can confirm payment and delivery. Orders ship in 5–7 days from confirmation.
         </p>
         <button type="submit" disabled={pending} className="btn-primary mt-6">
           {pending ? "…" : "Order via WhatsApp"}

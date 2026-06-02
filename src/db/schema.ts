@@ -6,7 +6,8 @@ import { sql } from "drizzle-orm";
  *
  * Money is stored in **USD minor units** on `products.price_usd_minor`; orders
  * snapshot the currency-converted amount on each item so totals reconcile if
- * FX moves before delivery.
+ * FX moves over the 5–7 day delivery window. Payment is coordinated on
+ * WhatsApp — no cash-on-delivery, no online payment processor in v1.
  */
 
 export const categories = pgTable("categories", {
@@ -91,7 +92,7 @@ export const orders = pgTable(
     shippingLine2: text("shipping_line2"),
     shippingCity: text("shipping_city").notNull(),
     shippingCountry: text("shipping_country").notNull().default("ZW"),
-    paymentProvider: text("payment_provider").notNull().default("whatsapp_cod"),
+    paymentProvider: text("payment_provider").notNull().default("whatsapp"),
     status: text("status").notNull().default("pending"),  // 'pending' | 'paid' | 'cancelled' | 'failed' | 'refunded'
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),

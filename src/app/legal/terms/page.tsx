@@ -16,7 +16,7 @@ export default function TermsPage() {
 
       <H2>Prices</H2>
       <p>
-        Prices on the site are in USD. You can switch the display to ZWG; the ZWG amount uses a daily FX snapshot and is recomputed at checkout. Cash on delivery only. We don&apos;t take card payments online.
+        Prices on the site are in USD. You can switch the display to ZWG; the ZWG amount uses a daily FX snapshot and is recomputed at checkout. Payment is arranged in the WhatsApp thread that opens after you place an order — no cash-on-delivery, no card payments online.
       </p>
 
       <H2>Stock</H2>

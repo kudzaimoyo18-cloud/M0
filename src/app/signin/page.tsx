@@ -23,7 +23,13 @@ export default async function SigninPage({
   async function signIn(formData: FormData) {
     "use server";
     const h = await headers();
-    const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
+    // Prefer x-vercel-forwarded-for — see middleware.ts for the spoofing
+    // rationale. Same header strategy keeps the rate-limit key consistent
+    // between middleware and the sign-in action.
+    const ip =
+      (h.get("x-vercel-forwarded-for") ?? h.get("x-forwarded-for") ?? "")
+        .split(",")[0]
+        .trim() || "unknown";
 
     const rl = checkLoginRate(ip);
     if (!rl.allowed) {
@@ -37,7 +43,13 @@ export default async function SigninPage({
     }
     resetLoginAttempts(ip);
     await setAdminCookie(pw);
-    redirect(next || "/admin");
+    // Open-redirect guard: only honor `next` if it points back into this
+    // app (starts with "/", not "//" which would resolve to a foreign host).
+    const safeNext =
+      typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
+        ? next
+        : "/admin";
+    redirect(safeNext);
   }
 
   const throttled = error === "throttled";

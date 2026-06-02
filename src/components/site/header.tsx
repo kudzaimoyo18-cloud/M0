@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Heart, Search, ShoppingBag, Menu, X } from "lucide-react";
 import { useCart } from "@/components/providers/cart-provider";
 import { CurrencySwitcher } from "@/components/site/currency-switcher";
+import { SearchOverlay } from "@/components/site/search-overlay";
 import { cn } from "@/lib/utils";
 
 const NAV: { label: string; href: string }[] = [
@@ -18,6 +19,7 @@ export function Header() {
   const { count } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -55,7 +57,12 @@ export function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-4 md:gap-5">
-          <button type="button" aria-label="Search" className="p-1 hover:opacity-70">
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => setSearchOpen(true)}
+            className="p-1 hover:opacity-70"
+          >
             <Search className="h-5 w-5" strokeWidth={1.25} />
           </button>
           <Link href="/wishlist" aria-label="Wishlist" className="p-1 hover:opacity-70">
@@ -71,6 +78,8 @@ export function Header() {
           </Link>
         </div>
       </div>
+
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {menuOpen && (
         <div className="fixed inset-0 z-50 bg-paper flex flex-col">

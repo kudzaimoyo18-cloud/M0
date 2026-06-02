@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter, Cinzel } from "next/font/google";
 import { CurrencyProvider } from "@/components/providers/currency-provider";
 import { CartProvider } from "@/components/providers/cart-provider";
+import { WishlistProvider } from "@/components/providers/wishlist-provider";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import "./globals.css";
@@ -50,12 +51,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <CurrencyProvider>
           <CartProvider>
-            <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:bg-ink-900 focus:text-paper focus:px-3 focus:py-2 focus:label">
-              Skip to content
-            </a>
-            <Header />
-            <main id="main">{children}</main>
-            <Footer />
+            <WishlistProvider>
+              <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:bg-ink-900 focus:text-paper focus:px-3 focus:py-2 focus:label">
+                Skip to content
+              </a>
+              <Header />
+              <main id="main">{children}</main>
+              <Footer />
+            </WishlistProvider>
           </CartProvider>
         </CurrencyProvider>
       </body>
