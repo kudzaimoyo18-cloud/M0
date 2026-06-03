@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const NAV: { label: string; href: string }[] = [
   { label: "Women", href: "/women" },
   { label: "Men", href: "/men" },
+  { label: "Kids", href: "/kids" },
   { label: "New", href: "/new" },
   { label: "Editorial", href: "/editorial" },
 ];

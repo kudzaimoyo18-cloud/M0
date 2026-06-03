@@ -5,7 +5,7 @@ import { ProductCard, type ProductCardData } from "@/components/site/product-car
 
 export const dynamic = "force-dynamic";
 
-const KNOWN = new Set(["women", "men", "new", "editorial"]);
+const KNOWN = new Set(["women", "men", "kids", "new", "editorial"]);
 
 async function loadProducts(categoryId: string): Promise<ProductCardData[]> {
   try {
