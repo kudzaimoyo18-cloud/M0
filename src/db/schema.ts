@@ -6,8 +6,9 @@ import { sql } from "drizzle-orm";
  *
  * Money is stored in **USD minor units** on `products.price_usd_minor`; orders
  * snapshot the currency-converted amount on each item so totals reconcile if
- * FX moves over the 5–7 day delivery window. Payment is coordinated on
- * WhatsApp — no cash-on-delivery, no online payment processor in v1.
+ * FX moves over the 5–7 day delivery window. v2 takes card payments via Whop
+ * (orders.payment_provider = 'whop'); orders.whop_charge_id is the Whop
+ * charge id used to match webhook events back to orders.
  */
 
 export const categories = pgTable("categories", {
@@ -92,7 +93,8 @@ export const orders = pgTable(
     shippingLine2: text("shipping_line2"),
     shippingCity: text("shipping_city").notNull(),
     shippingCountry: text("shipping_country").notNull().default("ZW"),
-    paymentProvider: text("payment_provider").notNull().default("whatsapp"),
+    paymentProvider: text("payment_provider").notNull().default("whop"),
+    whopChargeId: text("whop_charge_id"),
     status: text("status").notNull().default("pending"),  // 'pending' | 'paid' | 'cancelled' | 'failed' | 'refunded'
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
@@ -101,6 +103,7 @@ export const orders = pgTable(
     refUq: uniqueIndex("orders_reference_uq").on(t.reference),
     emailIdx: index("orders_email_idx").on(t.email),
     statusIdx: index("orders_status_idx").on(t.status),
+    whopChargeIdx: index("orders_whop_charge_idx").on(t.whopChargeId),
   })
 );
 
@@ -124,3 +127,4 @@ export const orderItems = pgTable(
 
 // Keep the symbol so legacy imports compile during transition (no-op).
 void sql;
+void primaryKey;

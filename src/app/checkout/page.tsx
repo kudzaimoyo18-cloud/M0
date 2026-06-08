@@ -46,23 +46,16 @@ export default function CheckoutPage() {
       const json = (await res.json()) as {
         ok: boolean;
         redirectUrl?: string;
-        thanksUrl?: string;
-        whatsappConfigured?: boolean;
         error?: string;
       };
       if (!json.ok || !json.redirectUrl) {
-        setError(json.error ?? "Could not place order");
+        setError(json.error ?? "Could not start card payment");
         return;
       }
       clear();
-      // If WhatsApp is configured, open the chat in a new tab so the
-      // shopper keeps the M0 thank-you page in the original tab.
-      if (json.whatsappConfigured && json.thanksUrl) {
-        window.open(json.redirectUrl, "_blank", "noopener,noreferrer");
-        window.location.href = json.thanksUrl;
-      } else {
-        window.location.href = json.redirectUrl;
-      }
+      // redirectUrl is Whop's hosted checkout. Same-tab redirect so the
+      // buyer's bank challenge UI works without popup blockers eating it.
+      window.location.href = json.redirectUrl;
     });
   }
 
@@ -71,7 +64,7 @@ export default function CheckoutPage() {
       <div>
         <h1 className="font-display text-section mb-2">Checkout</h1>
         <p className="text-ink-500 text-[14px] max-w-measure">
-          M0 confirms every order over WhatsApp. Fill in your details and we&apos;ll continue the conversation there — payment is arranged in the thread and delivery lands in 5–7 days.
+          Secure card checkout via Whop. Visa, Mastercard, and most international cards accepted. Delivery to Harare lands in 5–7 days from payment.
         </p>
 
         <fieldset className="space-y-5 mt-10">
@@ -124,10 +117,10 @@ export default function CheckoutPage() {
           <Price usdMinor={subtotalUsdMinor} className="label" />
         </div>
         <p className="caption text-ink-500 mt-3">
-          We&apos;ll open WhatsApp with your order summary so we can confirm payment and delivery. Orders ship in 5–7 days from confirmation.
+          You&apos;ll be redirected to Whop&apos;s secure checkout to enter card details. No card data touches M0.
         </p>
         <button type="submit" disabled={pending} className="btn-primary mt-6">
-          {pending ? "…" : "Order via WhatsApp"}
+          {pending ? "…" : "Pay with card"}
         </button>
       </aside>
     </form>
