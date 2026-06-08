@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
       email: body.shipping.email.toLowerCase(),
       successUrl: `${siteUrl}/checkout/thanks?ref=${encodeURIComponent(reference)}`,
       cancelUrl: `${siteUrl}/checkout?cancelled=1`,
+      title: `M0 Order ${reference}`,
       metadata: {
         orderId,
         reference,

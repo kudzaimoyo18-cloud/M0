@@ -1,18 +1,19 @@
 /**
  * Whop API client.
  *
- * v2 of M0 uses Whop for online card payments. We hit the Charges API
- * (POST /api/v5/charges) to mint a hosted checkout URL per order. Customer
- * is redirected to Whop's checkout page, pays by card, Whop posts a webhook
- * to /api/webhooks/whop with `charge.succeeded`. We then flip the order
- * status to 'paid'.
+ * Whop doesn't expose a Stripe-style /charges endpoint. The closest primitive
+ * for hosted card checkout is to create a one-time, hidden Plan per order via
+ * `POST /api/v5/plans`. Whop returns a `purchase_url` we redirect the buyer
+ * to; after payment, Whop fires a `payment.succeeded` webhook with the
+ * plan's metadata so we can mark the order paid.
  *
- * Required env (all server-only — never NEXT_PUBLIC_*):
- *   WHOP_API_KEY         Bearer token from Whop dashboard → Developers
- *   WHOP_WEBHOOK_SECRET  HMAC secret from the webhook endpoint config
+ * Required env (all server-only):
+ *   WHOP_API_KEY        Bearer token from Whop → Developers → API Keys
+ *   WHOP_COMPANY_ID     Business id, e.g. biz_xxxxx
+ *   WHOP_WEBHOOK_SECRET HMAC secret from the webhook endpoint config
  *
  * Optional env:
- *   WHOP_API_BASE        Override API base (default https://api.whop.com)
+ *   WHOP_API_BASE       Override API base (default https://api.whop.com)
  */
 
 import "server-only";
@@ -20,7 +21,7 @@ import "server-only";
 const DEFAULT_BASE = "https://api.whop.com";
 
 export interface WhopCharge {
-  /** Whop's charge ID — stored on orders.whop_charge_id for webhook lookup. */
+  /** Whop's plan id — stored on orders.whop_charge_id for webhook lookup. */
   id: string;
   /** Hosted checkout URL — redirect the customer here. */
   checkout_url: string;
@@ -28,16 +29,18 @@ export interface WhopCharge {
 }
 
 export interface CreateChargeInput {
-  /** Amount in USD minor units (cents). Whop expects integer cents. */
+  /** Amount in USD minor units (cents). Converted to dollars for Whop. */
   amountUsdCents: number;
-  /** Buyer email — Whop pre-fills this on its checkout page. */
+  /** Buyer email. */
   email: string;
   /** Where to send the buyer after a successful charge. */
   successUrl: string;
   /** Where to send the buyer if they cancel out of Whop checkout. */
   cancelUrl: string;
-  /** Arbitrary metadata. We pass orderId + reference so the webhook can look up the order. */
+  /** Order metadata so the webhook can look up the right order row. */
   metadata: Record<string, string>;
+  /** Public-facing title shown on the Whop checkout page. */
+  title: string;
 }
 
 function getApiKey(): string {
@@ -46,18 +49,26 @@ function getApiKey(): string {
   return key;
 }
 
+function getCompanyId(): string {
+  const id = process.env.WHOP_COMPANY_ID;
+  if (!id) throw new Error("WHOP_COMPANY_ID is not set");
+  return id;
+}
+
 function getBase(): string {
   return process.env.WHOP_API_BASE ?? DEFAULT_BASE;
 }
 
 /**
- * Create a Whop charge and return the hosted checkout URL.
+ * Mint a hidden one-time Whop Plan for this order and return its purchase_url.
  *
- * If Whop changes the endpoint shape, this is the single place to update —
- * every caller goes through this function.
+ * Hidden plans don't appear on the company's public storefront, so the only
+ * way for a buyer to land on the checkout is via this URL.
  */
 export async function createCharge(input: CreateChargeInput): Promise<WhopCharge> {
-  const res = await fetch(`${getBase()}/api/v5/charges`, {
+  const priceUsd = input.amountUsdCents / 100;
+
+  const res = await fetch(`${getBase()}/api/v5/plans`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${getApiKey()}`,
@@ -65,10 +76,14 @@ export async function createCharge(input: CreateChargeInput): Promise<WhopCharge
       Accept: "application/json",
     },
     body: JSON.stringify({
-      amount_cents: input.amountUsdCents,
-      currency: "usd",
-      email: input.email,
-      redirect_url: input.successUrl,
+      company_id: getCompanyId(),
+      plan_type: "one_time",
+      initial_price: priceUsd,
+      base_currency: "usd",
+      visibility: "hidden",
+      title: input.title,
+      release_method: "buy_now",
+      success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       metadata: input.metadata,
     }),
@@ -80,8 +95,12 @@ export async function createCharge(input: CreateChargeInput): Promise<WhopCharge
     throw new Error(`Whop createCharge failed: ${res.status} ${body.slice(0, 500)}`);
   }
 
-  const json = (await res.json()) as Partial<WhopCharge>;
-  if (!json.id || !json.checkout_url) {
+  const json = (await res.json()) as {
+    id?: string;
+    purchase_url?: string;
+    status?: string;
+  };
+  if (!json.id || !json.purchase_url) {
     throw new Error(
       `Whop createCharge returned unexpected shape: ${JSON.stringify(json).slice(0, 500)}`
     );
@@ -89,7 +108,7 @@ export async function createCharge(input: CreateChargeInput): Promise<WhopCharge
 
   return {
     id: json.id,
-    checkout_url: json.checkout_url,
+    checkout_url: json.purchase_url,
     status: json.status ?? "pending",
   };
 }
