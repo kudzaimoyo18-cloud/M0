@@ -133,7 +133,7 @@ export default async function PDP({ params }: { params: Promise<{ slug: string }
 
           <dl className="mt-10 border-t border-ink-300 pt-6 grid grid-cols-1 gap-3 caption text-ink-500">
             <div className="flex justify-between"><dt>Delivery</dt><dd>5–7 days, Harare only</dd></div>
-            <div className="flex justify-between"><dt>Payment</dt><dd>Cash on delivery, card, or EcoCash</dd></div>
+            <div className="flex justify-between"><dt>Payment</dt><dd>Card, EcoCash, or arranged on WhatsApp</dd></div>
             <div className="flex justify-between"><dt>Returns</dt><dd>30 days, unworn, tags attached</dd></div>
           </dl>
         </aside>

@@ -6,10 +6,10 @@ import { useCurrency } from "@/components/providers/currency-provider";
 import { Price } from "@/components/site/price";
 import { getDisplayNumber } from "@/lib/whatsapp";
 
-type PaymentMethod = "whop" | "ecocash" | "cash";
+type PaymentMethod = "whop" | "ecocash" | "whatsapp";
 
 const METHODS: { id: PaymentMethod; label: string; hint: string }[] = [
-  { id: "cash", label: "Cash on Delivery", hint: "Pay the courier when your order arrives. Confirmed on WhatsApp." },
+  { id: "whatsapp", label: "Order via WhatsApp", hint: "Payment arranged on the thread before dispatch. No payment at the door." },
   { id: "whop", label: "Card", hint: "Visa / Mastercard via Whop secure checkout." },
   { id: "ecocash", label: "EcoCash", hint: "Coming soon — we will arrange it on WhatsApp for now." },
 ];
@@ -19,7 +19,7 @@ export default function CheckoutPage() {
   const { currency } = useCurrency();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [method, setMethod] = useState<PaymentMethod>("whatsapp");
 
   if (count === 0) {
     return (
@@ -78,7 +78,7 @@ export default function CheckoutPage() {
   }
 
   const submitLabel =
-    method === "whop" ? "Pay with card" : method === "ecocash" ? "Order via EcoCash" : "Order — Cash on Delivery";
+    method === "whop" ? "Pay with card" : method === "ecocash" ? "Order via EcoCash" : "Order via WhatsApp";
 
   const whatsappNumber = getDisplayNumber();
 
@@ -138,7 +138,7 @@ export default function CheckoutPage() {
               </label>
             ))}
           </div>
-          {method === "cash" && whatsappNumber && (
+          {method === "whatsapp" && whatsappNumber && (
             <p className="caption text-ink-500 mt-3">
               Orders are confirmed on WhatsApp {whatsappNumber} before dispatch.
             </p>

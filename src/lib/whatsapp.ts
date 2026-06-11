@@ -30,8 +30,8 @@ export interface WhatsAppOrderInput {
     unitPriceMinor: number;
   }[];
   siteUrl?: string;
-  /** 'cash' = Cash on Delivery confirm; 'ecocash' = EcoCash coordination. */
-  paymentMethod?: "cash" | "ecocash";
+  /** 'ecocash' = EcoCash coordination; default copy covers WhatsApp orders. */
+  paymentMethod?: "whatsapp" | "ecocash";
 }
 
 function formatAmount(minor: number, currency: string): string {
@@ -63,9 +63,7 @@ export function buildOrderMessage(input: WhatsAppOrderInput): string {
   }
   lines.push("");
   lines.push(`*Total* ${formatAmount(input.totalMinor, input.currency)}`);
-  if (input.paymentMethod === "cash") {
-    lines.push("_Cash on Delivery — I'll pay the courier when my order arrives._");
-  } else if (input.paymentMethod === "ecocash") {
+  if (input.paymentMethod === "ecocash") {
     lines.push("_I'd like to pay by EcoCash — please send the merchant details._");
   } else {
     lines.push("_Payment arranged on this thread. Delivery 5–7 days from confirmation._");

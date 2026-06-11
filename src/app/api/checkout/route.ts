@@ -8,7 +8,7 @@ import { nextReference } from "@/lib/order-reference";
 import { createCharge } from "@/lib/whop";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
-const PaymentMethodSchema = z.enum(["whop", "ecocash", "cash"]);
+const PaymentMethodSchema = z.enum(["whop", "ecocash", "whatsapp"]);
 type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 
 const BodySchema = z.object({
@@ -50,8 +50,9 @@ function uuid() {
  *           order to 'paid' on charge.succeeded.
  *   ecocash UI stub. Order created with provider='ecocash_pending', buyer
  *           opens WhatsApp to coordinate (Paynow integration TBD).
- *   cash    Cash on Delivery. Order created with provider='cash_on_delivery',
- *           buyer opens WhatsApp with prefilled order summary to confirm.
+ *   whatsapp Order via WhatsApp. Order created with provider='whatsapp',
+ *           buyer opens WhatsApp with prefilled summary; payment is arranged
+ *           on the thread BEFORE dispatch. No cash on delivery.
  *
  * No transaction wrapper - neon-http doesn't support db.transaction.
  * Sequential inserts: if items insert fails, the order row stays as 'pending'
@@ -209,7 +210,7 @@ function providerForMethod(method: PaymentMethod): string {
       return "whop";
     case "ecocash":
       return "ecocash_pending";
-    case "cash":
-      return "cash_on_delivery";
+    case "whatsapp":
+      return "whatsapp";
   }
 }
