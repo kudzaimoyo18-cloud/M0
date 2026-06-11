@@ -37,7 +37,7 @@ export function Footer() {
         <div>
           <div className="font-wordmark font-semibold text-[32px] tracking-[0.18em]">M0</div>
           <p className="mt-4 text-ink-300 max-w-measure" style={{ fontSize: "13px" }}>
-            Modern wardrobe essentials. Curated in Dubai. Delivered in Harare.
+            The wardrobe, considered. Sourced from the world’s fashion capitals — brought home to Harare.
           </p>
           <div className="mt-6">
             <WhatsAppContact />
