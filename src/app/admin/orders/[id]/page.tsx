@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { requireAdmin } from "@/lib/admin";
 import { formatPrice, type Currency } from "@/lib/currency";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
 
 export default async function AdminOrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,10 +17,11 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ i
     "use server";
     await requireAdmin();
     const db = await getDb();
-    const next = String(formData.get("status")) as "pending" | "paid" | "cancelled" | "failed" | "refunded";
+    const next = String(formData.get("status")) as OrderStatus;
+    if (!ORDER_STATUSES.includes(next)) return;
     await db
       .update(schema.orders)
-      .set({ status: next, paidAt: next === "paid" ? new Date() : null })
+      .set({ status: next, paidAt: next === "paid" && !order.paidAt ? new Date() : order.paidAt })
       .where(eq(schema.orders.id, id));
     redirect(`/admin/orders/${id}`);
   }
@@ -29,6 +31,7 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ i
       <div>
         <h2 className="font-display text-section">{order.reference}</h2>
         <p className="text-ink-500 mt-1 text-[14px]">{new Date(order.createdAt).toLocaleString()}</p>
+        <p className="caption text-ink-500 mt-1">Payment: {order.paymentProvider}</p>
 
         <h3 className="label mt-8 mb-4">Items</h3>
         <ul className="border-t border-ink-300">
@@ -46,14 +49,15 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ i
           <h3 className="label mb-4">Status</h3>
           <form action={setStatus} className="flex items-end gap-3">
             <select name="status" defaultValue={order.status} className="input-underline bg-paper">
-              <option value="pending">pending</option>
-              <option value="paid">paid</option>
-              <option value="cancelled">cancelled</option>
-              <option value="failed">failed</option>
-              <option value="refunded">refunded</option>
+              {ORDER_STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
             <button type="submit" className="btn-secondary">Update</button>
           </form>
+          <p className="caption text-ink-500 mt-3">
+            Customer sees this on the tracking page immediately.
+          </p>
         </section>
 
         <section>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { formatPrice, type Currency } from "@/lib/currency";
+import { TIMELINE_STEPS, timelineIndex, isTerminalBad } from "@/lib/order-status";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,52 @@ async function loadOrder(reference: string, email: string) {
   }
 }
 
+function Timeline({ status }: { status: string }) {
+  const idx = timelineIndex(status);
+  const bad = isTerminalBad(status);
+
+  if (bad) {
+    return (
+      <div className="mt-8 border border-ink-300 p-5">
+        <p className="label capitalize">{status}</p>
+        <p className="text-ink-500 text-[14px] mt-2">
+          This order is no longer active. Questions? Reply on your WhatsApp thread or message us from the footer.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ol className="mt-8 relative">
+      {TIMELINE_STEPS.map((step, i) => {
+        const done = idx >= i;
+        const current = idx === i;
+        const isLast = i === TIMELINE_STEPS.length - 1;
+        return (
+          <li key={step.status} className="relative flex gap-4 pb-7 last:pb-0">
+            {!isLast && (
+              <span
+                aria-hidden
+                className={`absolute left-[7px] top-5 bottom-0 w-px ${done && idx > i ? "bg-ink-900" : "bg-ink-300"}`}
+              />
+            )}
+            <span
+              aria-hidden
+              className={`relative z-10 mt-1 h-[15px] w-[15px] flex-none rounded-full border ${
+                done ? "bg-ink-900 border-ink-900" : "bg-paper border-ink-300"
+              } ${current ? "ring-2 ring-ink-900 ring-offset-2 ring-offset-paper" : ""}`}
+            />
+            <div className={done ? "" : "opacity-50"}>
+              <p className="label">{step.label}</p>
+              <p className="text-ink-500 text-[13px] mt-0.5">{step.detail}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function OrderSummary({ order, items }: { order: typeof schema.orders.$inferSelect; items: (typeof schema.orderItems.$inferSelect)[] }) {
   const currency = order.currency as Currency;
   return (
@@ -77,7 +124,9 @@ function OrderSummary({ order, items }: { order: typeof schema.orders.$inferSele
         {new Date(order.createdAt).toLocaleString()}
       </p>
 
-      <ul className="mt-6 border-t border-ink-300">
+      <Timeline status={order.status} />
+
+      <ul className="mt-8 border-t border-ink-300">
         {items.map((i) => (
           <li key={i.id} className="flex justify-between py-3 border-b border-ink-300 text-[14px]">
             <span>

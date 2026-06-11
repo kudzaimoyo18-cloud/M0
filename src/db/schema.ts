@@ -95,7 +95,7 @@ export const orders = pgTable(
     shippingCountry: text("shipping_country").notNull().default("ZW"),
     paymentProvider: text("payment_provider").notNull().default("whop"),
     whopChargeId: text("whop_charge_id"),
-    status: text("status").notNull().default("pending"),  // 'pending' | 'paid' | 'cancelled' | 'failed' | 'refunded'
+    status: text("status").notNull().default("pending"),  // full lifecycle in src/lib/order-status.ts
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
   },
