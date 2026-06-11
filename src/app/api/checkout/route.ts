@@ -6,8 +6,13 @@ import { convertFromUsdMinor, getRate, type Currency } from "@/lib/currency";
 import { shippingUsdMinor, subtotalUsdMinor as sumCartUsdMinor } from "@/lib/cart-math";
 import { nextReference } from "@/lib/order-reference";
 import { createCharge } from "@/lib/whop";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+
+const PaymentMethodSchema = z.enum(["whop", "ecocash", "cash"]);
+type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 
 const BodySchema = z.object({
+  paymentMethod: PaymentMethodSchema,
   currency: z.enum(["USD", "ZWG"]),
   lines: z
     .array(
@@ -39,13 +44,18 @@ function uuid() {
 }
 
 /**
- * v2 checkout: persist a pending order, mint a Whop charge, return the Whop
- * hosted checkout URL the client should redirect to. The Whop webhook
- * (POST /api/webhooks/whop) flips status → 'paid' on `charge.succeeded`.
+ * v3 checkout - three payment methods.
  *
- * No transaction wrapper — neon-http doesn't support db.transaction.
- * Sequential inserts: if the order row lands but order_items fail, the order
- * stays in 'pending' with no items and can be cleaned up by the admin.
+ *   whop    Hosted card checkout via Whop. Buyer redirected, webhook flips
+ *           order to 'paid' on charge.succeeded.
+ *   ecocash UI stub. Order created with provider='ecocash_pending', buyer
+ *           opens WhatsApp to coordinate (Paynow integration TBD).
+ *   cash    Cash on Delivery. Order created with provider='cash_on_delivery',
+ *           buyer opens WhatsApp with prefilled order summary to confirm.
+ *
+ * No transaction wrapper - neon-http doesn't support db.transaction.
+ * Sequential inserts: if items insert fails, the order row stays as 'pending'
+ * with no items and can be cleaned up by admin.
  */
 export async function POST(req: NextRequest) {
   const parsed = BodySchema.safeParse(await req.json());
@@ -54,8 +64,9 @@ export async function POST(req: NextRequest) {
   }
   const body = parsed.data;
   const currency = body.currency as Currency;
+  const method = body.paymentMethod;
 
-  // Harare-only delivery in v2 still. Match case-insensitively.
+  // Harare-only delivery still enforced.
   const city = body.shipping.city.trim().toLowerCase();
   if (city !== "harare") {
     return NextResponse.json(
@@ -75,15 +86,14 @@ export async function POST(req: NextRequest) {
   const shippingMinor =
     shippingUsdMinorValue === 0 ? 0 : await convertFromUsdMinor(shippingUsdMinorValue, currency);
   const totalMinor = subtotalMinor + shippingMinor;
-  // Whop is billed in USD cents regardless of the display currency. We charge
-  // the USD-canonical total, not the converted one.
+  // Whop bills in USD cents regardless of display currency.
   const totalUsdCents = subtotalUsdMinor + shippingUsdMinorValue;
 
   const orderId = uuid();
   const reference = nextReference();
   const db = await getDb();
 
-  // Round per-line, then derive line totals so subtotals reconcile exactly.
+  // Round per-line first, then derive line totals so subtotal reconciles.
   const orderLines = body.lines.map((l) => {
     const unitPriceMinor = Math.round(l.unitPriceUsdMinor * fxRate);
     return {
@@ -98,6 +108,8 @@ export async function POST(req: NextRequest) {
       lineTotalMinor: unitPriceMinor * l.qty,
     };
   });
+
+  const paymentProvider = providerForMethod(method);
 
   await db.insert(schema.orders).values({
     id: orderId,
@@ -114,52 +126,90 @@ export async function POST(req: NextRequest) {
     shippingLine2: body.shipping.line2 ?? null,
     shippingCity: body.shipping.city,
     shippingCountry: body.shipping.country,
-    paymentProvider: "whop",
+    paymentProvider,
     status: "pending",
   });
   await db.insert(schema.orderItems).values(orderLines);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
+  const thanksUrl = `${siteUrl}/checkout/thanks?ref=${encodeURIComponent(reference)}`;
 
-  // Mint the Whop charge. If this throws, the order row stays in 'pending'
-  // with no charge id — admin can either retry the checkout or cancel it.
-  let charge;
-  try {
-    charge = await createCharge({
-      amountUsdCents: totalUsdCents,
-      email: body.shipping.email.toLowerCase(),
-      successUrl: `${siteUrl}/checkout/thanks?ref=${encodeURIComponent(reference)}`,
-      cancelUrl: `${siteUrl}/checkout?cancelled=1`,
-      title: `M0 Order ${reference}`,
-      metadata: {
-        orderId,
-        reference,
-      },
+  // -- Branch by payment method ------------------------------------
+  if (method === "whop") {
+    let charge;
+    try {
+      charge = await createCharge({
+        amountUsdCents: totalUsdCents,
+        email: body.shipping.email.toLowerCase(),
+        successUrl: thanksUrl,
+        cancelUrl: `${siteUrl}/checkout?cancelled=1`,
+        title: `M0 Order ${reference}`,
+        metadata: { orderId, reference },
+      });
+    } catch (err) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : "Could not start card payment. Try again or contact us on WhatsApp.",
+        },
+        { status: 502 }
+      );
+    }
+
+    await db
+      .update(schema.orders)
+      .set({ whopChargeId: charge.id })
+      .where(eq(schema.orders.id, orderId));
+
+    return NextResponse.json({
+      ok: true,
+      method,
+      reference,
+      orderId,
+      redirectUrl: charge.checkout_url,
+      thanksUrl,
     });
-  } catch (err) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : "Could not start card payment. Try again or contact us on WhatsApp.",
-      },
-      { status: 502 }
-    );
   }
 
-  // Stash the Whop charge id for the webhook to look up.
-  await db
-    .update(schema.orders)
-    .set({ whopChargeId: charge.id })
-    .where(eq(schema.orders.id, orderId));
+  // EcoCash + Cash both route through WhatsApp - they differ only in the
+  // prefilled message and the comingSoon flag the UI shows for EcoCash.
+  const whatsappUrl = buildWhatsAppUrl({
+    reference,
+    currency,
+    totalMinor,
+    shipping: body.shipping,
+    lines: orderLines.map((l) => ({
+      name: l.productName,
+      variantLabel: l.variantLabel,
+      qty: l.qty,
+      unitPriceMinor: l.unitPriceMinor,
+    })),
+    siteUrl,
+    paymentMethod: method,
+  });
 
   return NextResponse.json({
     ok: true,
+    method,
     reference,
     orderId,
-    redirectUrl: charge.checkout_url,
-    thanksUrl: `${siteUrl}/checkout/thanks?ref=${encodeURIComponent(reference)}`,
+    redirectUrl: whatsappUrl ?? thanksUrl,
+    thanksUrl,
+    whatsapp: true,
+    comingSoon: method === "ecocash",
   });
+}
+
+function providerForMethod(method: PaymentMethod): string {
+  switch (method) {
+    case "whop":
+      return "whop";
+    case "ecocash":
+      return "ecocash_pending";
+    case "cash":
+      return "cash_on_delivery";
+  }
 }
