@@ -62,9 +62,10 @@ export function Header() {
             type="button"
             aria-label="Search"
             onClick={() => setSearchOpen(true)}
-            className="p-1 hover:opacity-70"
+            className="p-1 hover:opacity-70 inline-flex items-center gap-2 transition-opacity duration-fast"
           >
             <Search className="h-5 w-5" strokeWidth={1.25} />
+            <span className="label hidden md:inline">Search</span>
           </button>
           <Link href="/wishlist" aria-label="Wishlist" className="p-1 hover:opacity-70">
             <Heart className="h-5 w-5" strokeWidth={1.25} />

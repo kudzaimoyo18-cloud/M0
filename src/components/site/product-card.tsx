@@ -59,7 +59,7 @@ export function ProductCard({
   return (
     <div className="group" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <Link href={`/product/${product.slug}`} className="block">
-        <div className="relative aspect-product bg-ink-100 overflow-hidden">
+        <div className="relative aspect-product bg-ink-100 overflow-hidden card-zoom">
           {primary ? (
             <Image
               src={shown.url}
